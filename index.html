@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simulação - Circuito de Pré-Amplificação de Áudio</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Simulação do Circuito de Pré-Amplificação de Áudio</h1>
+
+      <div class="parameters-panel">
+        <h2 style="text-align: center; margin-bottom: 20px">
+          Parâmetros do Circuito
+        </h2>
+        <div class="parameters-grid">
+          <div class="param-group">
+            <h3>Filtro Passa-Baixas</h3>
+            <div class="param-item">
+              <span>R1:</span>
+              <span id="r1-value">10 kΩ</span>
+            </div>
+            <div class="param-item">
+              <span>C39:</span>
+              <span id="c39-value">10 nF</span>
+            </div>
+            <div class="param-item">
+              <span>fc:</span>
+              <span id="fc-lpf">1.59 kHz</span>
+            </div>
+          </div>
+
+          <div class="param-group">
+            <h3>Amplificador Op (U1A)</h3>
+            <div class="param-item">
+              <span>Ganho:</span>
+              <span id="gain-opamp">20 dB</span>
+            </div>
+            <div class="param-item">
+              <span>Rf/Rin:</span>
+              <span id="gain-ratio">9</span>
+            </div>
+            <div class="param-item">
+              <span>BW:</span>
+              <span id="bw-opamp">100 kHz</span>
+            </div>
+          </div>
+
+          <div class="param-group">
+            <h3>Filtro Passa-Banda</h3>
+            <div class="param-item">
+              <span>R7:</span>
+              <span id="r7-value">4.7 kΩ</span>
+            </div>
+            <div class="param-item">
+              <span>C26:</span>
+              <span id="c26-value">100 nF</span>
+            </div>
+            <div class="param-item">
+              <span>f0:</span>
+              <span id="fc-bpf">1.2 kHz</span>
+            </div>
+          </div>
+
+          <div class="param-group">
+            <h3>Estágio de Potência</h3>
+            <div class="param-item">
+              <span>Transistor:</span>
+              <span>Q1 (LR7Z-AM)</span>
+            </div>
+            <div class="param-item">
+              <span>Classe:</span>
+              <span>A</span>
+            </div>
+            <div class="param-item">
+              <span>Eficiência:</span>
+              <span>~25%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <h3>Controles de Simulação</h3>
+        <div class="control-group">
+          <label for="input-voltage">Tensão de Entrada (mVpp):</label>
+          <input
+            type="range"
+            id="input-voltage"
+            min="10"
+            max="500"
+            value="100"
+            step="10"
+          />
+          <span id="voltage-display">100 mVpp</span>
+        </div>
+
+        <div class="control-group">
+          <label for="frequency-test">Frequência de Teste (Hz):</label>
+          <select id="frequency-test">
+            <option value="100">100 Hz</option>
+            <option value="1000" selected>1 kHz</option>
+            <option value="5000">5 kHz</option>
+            <option value="10000">10 kHz</option>
+          </select>
+        </div>
+
+        <button class="btn" onclick="updateSimulation()">
+          Atualizar Simulação
+        </button>
+        <button class="btn" onclick="exportData()">Exportar Dados</button>
+      </div>
+
+      <div class="simulation-grid">
+        <div class="chart-container">
+          <div class="chart-title">Resposta em Frequência</div>
+          <canvas id="frequencyChart" width="400" height="300"></canvas>
+        </div>
+
+        <div class="chart-container">
+          <div class="chart-title">Análise de THD vs Amplitude</div>
+          <canvas id="thdChart" width="400" height="300"></canvas>
+        </div>
+
+        <div class="chart-container">
+          <div class="chart-title">Resposta Temporal (1 kHz)</div>
+          <canvas id="timeChart" width="400" height="300"></canvas>
+        </div>
+
+        <div class="chart-container">
+          <div class="chart-title">Potência vs Carga</div>
+          <canvas id="powerChart" width="400" height="300"></canvas>
+        </div>
+      </div>
+
+      <div class="analysis-results">
+        <h2 style="text-align: center; margin-bottom: 20px">
+          Resultados da Análise
+        </h2>
+        <div class="results-grid">
+          <div class="result-item">
+            <div class="result-value" id="total-gain">26.5 dB</div>
+            <div class="result-label">Ganho Total</div>
+          </div>
+          <div class="result-item">
+            <div class="result-value" id="bandwidth">8.2 kHz</div>
+            <div class="result-label">Largura de Banda</div>
+          </div>
+          <div class="result-item">
+            <div class="result-value" id="thd-value">1.2%</div>
+            <div class="result-label">THD @ 1kHz</div>
+          </div>
+          <div class="result-item">
+            <div class="result-value" id="power-output">850 mW</div>
+            <div class="result-label">Potência (8Ω)</div>
+          </div>
+          <div class="result-item">
+            <div class="result-value" id="efficiency">23.5%</div>
+            <div class="result-label">Eficiência</div>
+          </div>
+          <div class="result-item">
+            <div class="result-value" id="snr-value">68 dB</div>
+            <div class="result-label">SNR</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Dados de simulação baseados no relatório
+      let simulationData = {
+        frequency: [],
+        magnitude: [],
+        phase: [],
+        thd: [],
+        timeSignal: [],
+        powerData: [],
+      };
+
+      // Gerar dados de resposta em frequência
+      function generateFrequencyResponse() {
+        const frequencies = [];
+        const magnitudes = [];
+        const phases = [];
+
+        for (let f = 10; f <= 100000; f *= 1.1) {
+          frequencies.push(f);
+
+          // Modelagem dos filtros e amplificadores
+          const lpfResponse = 1 / Math.sqrt(1 + Math.pow(f / 1590, 2));
+          const opampGain = 10;
+          const bpfResponse =
+            f > 200 && f < 5000
+              ? 1 / Math.sqrt(1 + Math.pow((f - 1200) / 800, 2))
+              : 0.1;
+          const transistorResponse = f < 10000 ? 1 : 10000 / f;
+
+          const totalMagnitude =
+            lpfResponse * opampGain * bpfResponse * transistorResponse;
+          magnitudes.push(20 * Math.log10(totalMagnitude));
+
+          // Fase
+          const phase =
+            (-Math.atan(f / 1590) * 180) / Math.PI -
+            (Math.atan((f - 1200) / 400) * 180) / Math.PI;
+          phases.push(phase);
+        }
+
+        simulationData.frequency = frequencies;
+        simulationData.magnitude = magnitudes;
+        simulationData.phase = phases;
+      }
+
+      // Gerar dados de THD
+      function generateTHDData() {
+        const amplitudes = [];
+        const thdValues = [];
+
+        for (let amp = 10; amp <= 500; amp += 10) {
+          amplitudes.push(amp);
+
+          // THD aumenta com amplitude (limitação classe A)
+          let thd = 0.5 + (amp / 100) * 0.3;
+          if (amp > 300) thd += Math.pow((amp - 300) / 100, 2) * 0.5;
+
+          thdValues.push(thd);
+        }
+
+        simulationData.amplitudes = amplitudes;
+        simulationData.thd = thdValues;
+      }
+
+      // Gerar resposta temporal
+      function generateTimeResponse(inputVoltage = null, testFreq = null) {
+        const time = [];
+        const signal = [];
+        const voltage = inputVoltage
+          ? inputVoltage / 1000
+          : document.getElementById("input-voltage").value / 1000;
+        const frequency =
+          testFreq ||
+          parseFloat(document.getElementById("frequency-test").value);
+
+        const timeSpan = 3 / frequency;
+        const timeStep = timeSpan / 1000;
+
+        for (let t = 0; t <= timeSpan; t += timeStep) {
+          time.push(t * 1000);
+
+          // Sinal senoidal com ganho e distorção
+          const input = voltage * Math.sin(2 * Math.PI * frequency * t);
+          let gained = input * 20;
+
+          // Adicionar distorção harmônica baseada na amplitude
+          const distortionLevel = voltage > 0.2 ? (voltage - 0.2) * 5 : 0;
+          const distorted =
+            gained + distortionLevel * Math.pow(gained, 3) * 0.1;
+
+          // Adicionar limitação de saturação
+          const maxOutput = 5;
+          const saturated = Math.tanh(distorted / maxOutput) * maxOutput;
+
+          signal.push(saturated * 1000);
+        }
+
+        simulationData.time = time;
+        simulationData.timeSignal = signal;
+      }
+
+      // Gerar dados de potência
+      function generatePowerData() {
+        const loads = [];
+        const powers = [];
+
+        for (let load = 2; load <= 32; load += 2) {
+          loads.push(load);
+
+          // P = V²/R, limitado pela corrente máxima do transistor
+          const voltage = 12;
+          const maxCurrent = 0.5;
+          const power = Math.min(
+            Math.pow(voltage, 2) / load,
+            voltage * maxCurrent
+          );
+
+          powers.push(power);
+        }
+
+        simulationData.loads = loads;
+        simulationData.powerData = powers;
+      }
+
+      const chartOptions = {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: "top",
+            labels: {
+              color: "#f8f8f2",
+            },
+          },
+        },
+        scales: {
+          x: {
+            grid: {
+              color: "rgba(248, 248, 242, 0.1)",
+            },
+            ticks: {
+              color: "#f8f8f2",
+            },
+            title: {
+              color: "#8be9fd",
+            },
+          },
+          y: {
+            grid: {
+              color: "rgba(248, 248, 242, 0.1)",
+            },
+            ticks: {
+              color: "#f8f8f2",
+            },
+            title: {
+              color: "#8be9fd",
+            },
+          },
+        },
+      };
+
+      const charts = {};
+
+      function createFrequencyChart() {
+        const ctx = document.getElementById("frequencyChart").getContext("2d");
+        charts.frequency = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: simulationData.frequency.map((f) => f.toFixed(0)),
+            datasets: [
+              {
+                label: "Magnitude (dB)",
+                data: simulationData.magnitude,
+                borderColor: "#8be9fd",
+                backgroundColor: "rgba(139, 233, 253, 0.1)",
+                tension: 0.4,
+                pointRadius: 0,
+              },
+            ],
+          },
+          options: {
+            ...chartOptions,
+            scales: {
+              x: {
+                type: "logarithmic",
+                title: {
+                  display: true,
+                  text: "Frequência (Hz)",
+                },
+              },
+              y: {
+                title: {
+                  display: true,
+                  text: "Magnitude (dB)",
+                },
+              },
+            },
+          },
+        });
+      }
+
+      function createTHDChart() {
+        const ctx = document.getElementById("thdChart").getContext("2d");
+        charts.thd = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: simulationData.amplitudes,
+            datasets: [
+              {
+                label: "THD (%)",
+                data: simulationData.thd,
+                borderColor: "#ff79c6",
+                backgroundColor: "rgba(255, 121, 198, 0.1)",
+                tension: 0.4,
+                pointRadius: 2,
+                pointBackgroundColor: "#ff79c6",
+              },
+            ],
+          },
+          options: {
+            ...chartOptions,
+            scales: {
+              x: {
+                title: {
+                  display: true,
+                  text: "Amplitude de Entrada (mVpp)",
+                },
+              },
+              y: {
+                title: {
+                  display: true,
+                  text: "THD (%)",
+                },
+              },
+            },
+          },
+        });
+      }
+
+      function createTimeChart() {
+        const ctx = document.getElementById("timeChart").getContext("2d");
+        charts.time = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: simulationData.time,
+            datasets: [
+              {
+                label: "Saída (mV)",
+                data: simulationData.timeSignal,
+                borderColor: "#50fa7b",
+                backgroundColor: "rgba(80, 250, 123, 0.1)",
+                tension: 0.2,
+                pointRadius: 0,
+              },
+            ],
+          },
+          options: {
+            ...chartOptions,
+            scales: {
+              x: {
+                title: {
+                  display: true,
+                  text: "Tempo (ms)",
+                },
+              },
+              y: {
+                title: {
+                  display: true,
+                  text: "Amplitude (mV)",
+                },
+              },
+            },
+          },
+        });
+      }
+
+      // Criar gráfico de potência
+      function createPowerChart() {
+        const ctx = document.getElementById("powerChart").getContext("2d");
+        charts.power = new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels: simulationData.loads,
+            datasets: [
+              {
+                label: "Potência (mW)",
+                data: simulationData.powerData.map((p) => p * 1000),
+                backgroundColor: "rgba(189, 147, 249, 0.6)",
+                borderColor: "#bd93f9",
+                borderWidth: 2,
+              },
+            ],
+          },
+          options: {
+            ...chartOptions,
+            scales: {
+              x: {
+                title: {
+                  display: true,
+                  text: "Impedância de Carga (Ω)",
+                },
+              },
+              y: {
+                title: {
+                  display: true,
+                  text: "Potência (mW)",
+                },
+              },
+            },
+          },
+        });
+      }
+
+      // Atualizar simulação
+      function updateSimulation() {
+        const voltage = parseFloat(
+          document.getElementById("input-voltage").value
+        );
+        const frequency = parseFloat(
+          document.getElementById("frequency-test").value
+        );
+
+        document.getElementById("voltage-display").textContent =
+          voltage + " mVpp";
+
+        // Recalcular THD baseado na tensão (mais realista)
+        let currentTHD = 0.5 + (voltage / 100) * 0.15;
+        if (voltage > 300) {
+          currentTHD += Math.pow((voltage - 300) / 100, 2) * 0.8;
+        }
+        // THD varia com frequência também
+        if (frequency > 5000) {
+          currentTHD *= 1.5;
+        } else if (frequency < 500) {
+          currentTHD *= 1.2;
+        }
+
+        document.getElementById("thd-value").textContent =
+          currentTHD.toFixed(1) + "%";
+
+        // Atualizar ganho total baseado na frequência
+        let totalGain = 26.5;
+        if (frequency > 10000) {
+          totalGain -= 6;
+        } else if (frequency < 100) {
+          totalGain -= 3;
+        }
+        document.getElementById("total-gain").textContent =
+          totalGain.toFixed(1) + " dB";
+
+        // Atualizar potência de saída
+        const maxPower = 850;
+        let power = (voltage / 100) * 200;
+        power = Math.min(power, maxPower);
+
+        // Potência reduz em frequências extremas
+        if (frequency > 8000 || frequency < 200) {
+          power *= 0.7;
+        }
+
+        document.getElementById("power-output").textContent =
+          power.toFixed(0) + " mW";
+
+        // Atualizar eficiência
+        let efficiency = 23.5;
+        if (voltage > 200) {
+          efficiency -= ((voltage - 200) / 100) * 2;
+        }
+        efficiency = Math.max(efficiency, 15);
+        document.getElementById("efficiency").textContent =
+          efficiency.toFixed(1) + "%";
+
+        // Atualizar SNR
+        let snr = 68 - currentTHD * 10;
+        document.getElementById("snr-value").textContent =
+          snr.toFixed(0) + " dB";
+
+        // Atualizar largura de banda baseada na amplitude
+        let bandwidth = 8.2;
+        if (voltage > 300) {
+          bandwidth *= 0.8;
+        }
+        document.getElementById("bandwidth").textContent =
+          bandwidth.toFixed(1) + " kHz";
+
+        // Regenerar resposta temporal com nova frequência e amplitude
+        generateTimeResponse(voltage, frequency);
+        if (charts.time) {
+          charts.time.data.labels = simulationData.time;
+          charts.time.data.datasets[0].data = simulationData.timeSignal;
+          charts.time.update();
+        }
+
+        // Atualizar gráfico de THD
+        generateTHDData();
+        if (charts.thd) {
+          charts.thd.data.datasets[0].data = simulationData.thd;
+          charts.thd.update();
+        }
+
+        // Destacar ponto atual no gráfico de THD
+        const currentIndex = Math.floor((voltage - 10) / 10);
+        if (
+          charts.thd &&
+          currentIndex >= 0 &&
+          currentIndex < simulationData.thd.length
+        ) {
+          charts.thd.data.datasets[0].pointBackgroundColor =
+            "rgb(255, 99, 132)";
+          charts.thd.data.datasets[0].pointRadius = Array(
+            simulationData.thd.length
+          ).fill(2);
+
+          if (
+            !Array.isArray(charts.thd.data.datasets[0].pointBackgroundColor)
+          ) {
+            charts.thd.data.datasets[0].pointBackgroundColor = Array(
+              simulationData.thd.length
+            ).fill("rgb(255, 99, 132)");
+          }
+          if (!Array.isArray(charts.thd.data.datasets[0].pointRadius)) {
+            charts.thd.data.datasets[0].pointRadius = Array(
+              simulationData.thd.length
+            ).fill(2);
+          }
+
+          charts.thd.data.datasets[0].pointBackgroundColor[currentIndex] =
+            "#50fa7b";
+          charts.thd.data.datasets[0].pointRadius[currentIndex] = 6;
+          charts.thd.update();
+        }
+      }
+
+      function exportData() {
+        const data = {
+          parameters: {
+            lpf_cutoff: "1.59 kHz",
+            opamp_gain: "20 dB",
+            bpf_center: "1.2 kHz",
+            thd_1khz: document.getElementById("thd-value").textContent,
+            power_8ohm: document.getElementById("power-output").textContent,
+          },
+          frequency_response: simulationData.frequency.map((f, i) => ({
+            frequency: f,
+            magnitude: simulationData.magnitude[i],
+            phase: simulationData.phase[i],
+          })),
+        };
+
+        const blob = new Blob([JSON.stringify(data, null, 2)], {
+          type: "application/json",
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "simulacao_preamp_audio.json";
+        a.click();
+      }
+
+      // Controle de entrada de tensão com atualização automática
+      document
+        .getElementById("input-voltage")
+        .addEventListener("input", function () {
+          document.getElementById("voltage-display").textContent =
+            this.value + " mVpp";
+          updateSimulation();
+        });
+
+      // Controle de frequência com atualização automática
+      document
+        .getElementById("frequency-test")
+        .addEventListener("change", function () {
+          updateSimulation();
+        });
+
+      function init() {
+        generateFrequencyResponse();
+        generateTHDData();
+        generateTimeResponse();
+        generatePowerData();
+
+        createFrequencyChart();
+        createTHDChart();
+        createTimeChart();
+        createPowerChart();
+      }
+
+      window.addEventListener("load", init);
+    </script>
+  </body>
+</html>
